@@ -1,0 +1,104 @@
+<html>
+<title> JS Pointers simulation </title>
+
+<script type="application/javascript">
+<!--
+
+var mem = new Array(4096);
+for (var i = 0; i < mem.length; i++)
+    mem[i] = 0;
+    
+
+var BPTR = function(that, name, address)
+{
+    return {
+                that:       that,
+                name:       name, 
+                pointer:    address, 
+                get:        function()      { return mem[this.pointer]; }, 
+                set:        function(val)   { mem[this.pointer] = val; }, 
+                sync:       function()      { 
+                    that[this.name+"_"].set(that[this.name+"$"]);
+                    that[this.name+"_"].pointer = eval("that."+this.name);
+                    that[this.name+"$"] = that[this.name+"_"].get();
+                }
+           };
+}
+
+function defVar(that, ptrname, address) {
+    var ptr_pos = ptrname.indexOf("$");
+    var varname = ptrname;
+    if (ptr_pos >= 0) {
+        varname = ptrname.substr(0, ptr_pos);
+
+        that[varname+"_"] = BPTR(that, varname, address);
+        
+        Object.defineProperty(that, ptrname, {
+            get: function () { 
+                return that[varname+"_"].get();
+            },
+            set: function (v) {
+                that[varname+"_"].set(v);
+            }
+        });
+        Object.defineProperty(that, varname, {
+            get: function () { 
+                return that[varname+"_"].pointer; 
+            },
+            set: function (v) {
+                that[varname+"_"].pointer = v;
+                that[varname+"_"].sync();
+            }
+        });
+    }
+    else {
+        that[varname+"_"] = BPTR(that, varname, address);
+        Object.defineProperty(that, varname, {
+            get: function () { 
+                return that[varname+"_"].get(); 
+            },
+            set: function (v) {
+                that[varname+"_"].set(v);
+            }
+        });
+        Object.defineProperty(that, "$"+varname, {
+            get: function () { 
+                return that[varname+"_"].pointer; 
+            },
+            set: function (v) {
+                that[varname+"_"].pointer = v;
+            }
+        });
+    }
+}
+
+// Example of pointer simulation
+
+function Node()
+{
+    defVar(this,"ndMin$",10);
+    defVar(this,"ndMax$",11);
+    defVar(this,"value",20);
+}
+
+
+mem[10]=20;
+mem[11]=40;
+
+n = new Node();
+n.value = 31;
+
+alert("Address of ndMin: "+n.ndMin);
+alert("Address of ndMax: "+n.ndMax);
+alert("Variable value: "+n.value);
+
+alert("Value of ndMin$: "+n.ndMin$);
+alert("Value of ndMax$: "+n.ndMax$);
+alert("Address of value variable: "+n.$value);
+    
+</script>
+
+<body>
+
+</body>
+</html>
